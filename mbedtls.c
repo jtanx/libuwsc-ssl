@@ -11,6 +11,7 @@
 
 #include "ssl.h"
 
+#include <mbedtls/debug.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/x509.h>
 #include <mbedtls/rsa.h>
@@ -45,6 +46,10 @@ struct mbedtls_ssl {
     mbedtls_ssl_context ssl;
     mbedtls_net_context net;
 };
+
+static void my_debug(void *ctx, int level, const char *file, int line, const char *str) {
+    fprintf(stderr, "%s:%d: %s\n", file, line, str);
+}
 
 static inline mbedtls_ssl_context *ssl_to_mbedtls_ssl(struct ssl *ssl)
 {
@@ -132,6 +137,8 @@ struct ssl_context *ssl_context_new(bool server)
     psa_crypto_init();
 #endif
 
+    mbedtls_debug_set_threshold(4);
+
     ctx->server = server;
     mbedtls_pk_init(&ctx->key);
     mbedtls_x509_crt_init(&ctx->cert);
@@ -145,6 +152,7 @@ struct ssl_context *ssl_context_new(bool server)
 
     conf = &ctx->conf;
     mbedtls_ssl_config_init(conf);
+    mbedtls_ssl_conf_dbg(conf, my_debug, NULL);
 
     ep = server ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT;
 
